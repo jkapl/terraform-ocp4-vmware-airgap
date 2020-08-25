@@ -50,6 +50,10 @@ variable "private_netmask" {
   type = string
 }
 
+variable "pull_secret" {
+  type = string
+}
+
 variable "cluster_id" {
   type = string
 }

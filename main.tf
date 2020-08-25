@@ -56,6 +56,7 @@ module "helper" {
   storage_hostnames  = var.storage_hostnames
   storage_ips        = var.storage_ips
   binaries           = var.binaries
+  pull_secret        = var.openshift_pull_secret
 }
 
 module "createisos" {
@@ -224,7 +225,8 @@ module "deploy" {
 }
 
 resource "vsphere_folder" "folder" {
-  path          = var.openshift_cluster_id
+  # path          = var.openshift_cluster_id
+  path          = var.vsphere_folder
   type          = "vm"
   datacenter_id = data.vsphere_datacenter.datacenter.id
 }

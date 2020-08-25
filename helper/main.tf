@@ -65,6 +65,19 @@ resource "vsphere_virtual_machine" "helper" {
     destination = "/tmp/terraform_scripts"
   }
 
+  # provisioner "remote-exec" {
+  #   inline = [
+  #     "sudo su",
+  #     "mkdir .openshift",
+  #     "exit"
+  #   ]
+  # }
+
+  provisioner "file" {
+    source      = "${path.module}/pull-secret"
+    destination = "/tmp/terraform_scripts/"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "sudo chmod u+x /tmp/terraform_scripts/*.sh",
@@ -101,6 +114,14 @@ ocp_initramfs: "${var.binaries["openshift_initramfs"]}"
 ocp_install_kernel: "${var.binaries["openshift_kernel"]}"
 ocp_client: "${var.binaries["openshift_client"]}"
 ocp_installer: "${var.binaries["openshift_installer"]}"
+setup_registry:
+  deploy: true
+  autosync_registry: true
+  registry_image: docker.io/library/registry:2
+  local_repo: "ocp4/openshift4"
+  product_repo: "openshift-release-dev"
+  release_name: "ocp-release"
+  release_tag: "4.5.2-x86_64"
 EOF
 }
 
@@ -128,13 +149,21 @@ resource "null_resource" "configure" {
   provisioner "remote-exec" {
     inline = [
       "set -x",
-      "sudo yum install epel-release -y",
+      # "sudo yum install epel-release -y",
+      "sudo yum -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm -E %rhel).noarch.rpm",
       "sudo yum install git ansible genisoimage -y",
+      "sudo curl -O -L https://github.com/mikefarah/yq/releases/download/3.3.2/yq_linux_amd64",
+      "sudo chmod +x yq_linux_amd64",
+      "sudo cp yq_linux_amd64 /usr/bin/yq",
       "test -e /tmp/ocp4-helpernode || git clone ${var.binaries["openshift_helper"]} /tmp/ocp4-helpernode",
       "curl -sL -o /tmp/govc.gz ${var.binaries["govc"]}",
       "gunzip /tmp/govc.gz",
       "chmod 755 /tmp/govc",
-      "sudo mv /tmp/govc /usr/local/bin/"
+      "sudo mv /tmp/govc /usr/local/bin/",
+      "sudo mkdir /root/.openshift",
+      "cat /tmp/terraform_scripts/pull-secret/pull-secret.txt | sudo tee /root/.openshift/pull-secret",
+      "sudo curl ${var.binaries["openshift_client"]} --output oc",
+      "sudo tar xf oc -C /usr/bin"
     ]
   }
 
@@ -146,6 +175,7 @@ resource "null_resource" "configure" {
   provisioner "remote-exec" {
     inline = [
       "cd /tmp/ocp4-helpernode",
+      "sudo systemctl stop httpd",
       "sudo ansible-playbook -e @vars.yaml tasks/main.yml"
     ]
   }

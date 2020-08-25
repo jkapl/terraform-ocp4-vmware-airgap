@@ -32,8 +32,16 @@ platform:
     password: ${var.vsphere_password}
     datacenter: ${var.vsphere_datacenter}
     defaultDatastore: ${var.vsphere_datastore}
-pullSecret: '${file(var.pull_secret)}'
+pullSecret:
 sshKey: '${var.ssh_public_key}'
+additionalTrustBundle:
+imageContentSources:
+- mirrors:
+  - registry.${var.cluster_id}.${var.base_domain}:5000/ocp4/openshift4
+  source: quay.io/openshift-release-dev/ocp-release
+- mirrors:
+  - registry.${var.cluster_id}.${var.base_domain}:5000/ocp4/openshift4
+  source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOF
 }
 
@@ -58,6 +66,13 @@ resource "null_resource" "generate_ignition" {
   provisioner "remote-exec" {
     inline = [
       "mkdir installer/",
+      # "sleep 120",
+      # "export PULLSECRET=`sudo cat /root/.openshift/pull-secret-updated`",
+      # "export REGCERT=`sudo cat /opt/registry/certs/domain.crt`",
+      "yq w -i /tmp/install-config.yaml pullSecret -- \"$(sudo cat /root/.openshift/pull-secret-updated)\"",
+      "envsubst < /tmp/install-config.yaml",
+      "yq w -i /tmp/install-config.yaml additionalTrustBundle -- \"$(sudo cat /opt/registry/certs/domain.crt)\"",
+      "cd /home/sysadmin",
       "cp /tmp/install-config.yaml installer/",
       "/usr/local/bin/openshift-install --dir=installer create manifests",
       "rm installer/openshift/99_openshift-cluster-api_master-machines*",

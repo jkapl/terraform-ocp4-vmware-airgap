@@ -13,6 +13,7 @@
 
 # openshift pull-secret
 pull-secret
+pull-secret.*
 
 # local
 makefile
