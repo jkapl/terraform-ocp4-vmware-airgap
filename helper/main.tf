@@ -74,7 +74,7 @@ resource "vsphere_virtual_machine" "helper" {
   # }
 
   provisioner "file" {
-    source      = "${path.module}/pull-secret"
+    source      = "${path.module}/psecret"
     destination = "/tmp/terraform_scripts/"
   }
 
@@ -161,7 +161,7 @@ resource "null_resource" "configure" {
       "chmod 755 /tmp/govc",
       "sudo mv /tmp/govc /usr/local/bin/",
       "sudo mkdir /root/.openshift",
-      "cat /tmp/terraform_scripts/pull-secret/pull-secret.txt | sudo tee /root/.openshift/pull-secret",
+      "cat /tmp/terraform_scripts/psecret/pull-secret.txt | sudo tee /root/.openshift/pull-secret",
       "sudo curl ${var.binaries["openshift_client"]} --output oc",
       "sudo tar xf oc -C /usr/bin"
     ]
